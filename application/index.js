@@ -1,13 +1,12 @@
 var mqtt = require('mqtt');
-const {InfluxDB} = require('@influxdata/influxdb-client')
+const Influx = require('influx')
 
-// You can generate an API token from the "API Tokens Tab" in the UI
-const token = 'jEgf4f07jQq0-9rNvkzvuJIaLjP0LQAXWVljjoL1CS06_f_gKsJxvmdaXKkqcj_mWnw78ZndDqrt4gr6aD5htA=='
-const org = 'skhome'
-const bucket = 'skbucket'
-const clientdb = new InfluxDB({url: 'http://localhost:8086', token: token})
-
-const {Point} = require('@influxdata/influxdb-client')
+const influx = new Influx.InfluxDB({
+ host: '10.40.58.52',
+ database: 'nakey',
+ username:'admin',
+ password:'gearman1'
+})
 
 const MQTT_SERVER = "10.40.58.52";
 const MQTT_PORT = "1883";
@@ -40,8 +39,8 @@ client.on('message', function (topic, message) {
       const obj = JSON.parse(message.toString())
 
       // Gateway No.2
-      if ( obj.GW2 !== undefined ) {
-        let payload = obj.GW2
+      if ( obj.nakee !== undefined ) {
+        let payload = obj.nakee
 
         // header
         let gwId    = parseInt(payload.substring(2,4),16)
@@ -54,42 +53,38 @@ client.on('message', function (topic, message) {
         console.log("gwId=",gwId, ", sender=",sender,", msgId=",msgId, ", msgLen=",msgLen, ", rssi=",rssi)
 
         // data payload node #1 -------------------------
-        if( sender === 1 ) {
+        if( gwId == 2 && sender === 1 ) {
           let data    = parseInt(payload.substring(12,12 + msgLen),16)
           if (!isNaN(data)) {
             console.log("data =",data)
-            const writeApi = clientdb.getWriteApi(org, bucket)
-            writeApi.useDefaultTags({gateway: '2'})
-            const point = new Point('Node-1')
-                          .floatField('counter', data)
-
-            writeApi.writePoint(point)
-            writeApi.close().then(() => {
-                    console.log('Save InfluxDB\n')
-                }).catch(e => {
-                    console.error(e)
-                })
           }
         }
 
         // data payload node #2 -----------------------
-        else if( sender === 2 ) {
+        else if( gwId == 2 && sender === 2 ) {
             let t = parseInt(payload.substring(12,16),16)
             let h = parseInt(payload.substring(16,20),16)
             if (!isNaN(t) && !isNaN(h)) {
               console.log("t = ",t, ", h = ",h)
-              const writeApi = clientdb.getWriteApi(org, bucket)
-              writeApi.useDefaultTags({gateway: '2'})
-              const point = new Point('Node-2')
-                            .floatField('temperature', parseFloat(t)/10.0)
-                            .floatField('humidity', parseFloat(h)/10.0)
 
-              writeApi.writePoint(point)
-              writeApi.close().then(() => {
-                      console.log('Save InfluxDB\n')
-                  }).catch(e => {
-                      console.error(e)
+              influx.writePoints([
+                    {
+                      measurement: 'n_'+gwId.toString()+'_'+sender.toString(),
+                      tags: {
+                        gid: gwId,
+                      },
+                      fields: {
+                        temperature: parseFloat(t)/10.0,
+                        humidity: parseFloat(h)/10.0
+                      },
+                    }
+                  ], {
+                    database: 'nakey',
+                    precision: 's',
                   })
+                  .catch(err => {
+                    console.error(`Error saving data to InfluxDB! ${err.stack}`)
+                  });
             }
         }
 

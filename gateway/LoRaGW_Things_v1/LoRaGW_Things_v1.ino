@@ -7,7 +7,7 @@
 
 // Thing.egat.co.th -------------------------
 #define THINGSBOARD_SERVER  "mqtt.egat.co.th"
-#define TOKEN "bchoH0jeTLAQS97Ypbwv"
+#define TOKEN "p21tc9nc6xvgmxzx6iei"
 
 WiFiClient wifiClient;
 ThingsBoard tb(wifiClient);
@@ -31,7 +31,6 @@ int status = WL_IDLE_STATUS;
 //-------------------------------------------
 
 byte gatewayId = 0x02;        // gateway id
-char gateway[] = "GW2";       // things
 byte localAddress = 0x00;     // address of this device
 long lastSendTime = 0;        // last send time
 int interval = DCT;           // interval between sends
@@ -222,7 +221,8 @@ void onReceive(int packetSize) {
   sprintf(buff,"aa%02x%02x%02x%02x%02x%s",gatewayId,sender,incomingMsgId,incomingLength,-1*incomingRSSI,incoming);
   Serial.println("buff = "+String(buff));
   
-  tb.sendTelemetryString(gateway, buff);
+  tb.sendTelemetryString("nakee", buff);
+  
   memset(buff,0,sizeof(buff));
   
   display.clear();
@@ -240,25 +240,6 @@ void onReceive(int packetSize) {
 
 
 /*
-void reconnect() {
-  int status = WiFi.status();
-  if ( status != WL_CONNECTED) {
-    WiFi.begin(ssid, password);
-    display.clear();
-    display.drawString(10, 0, "Reconnect Wifi..");
-    display.display();
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println("Connected to AP");
-    display.clear();
-    display.drawString(10, 0, "Connected to AP!");
-    display.display();
-    delay(3000);
-  }
-}
-
 
   //- Thing Board ----------------------------
   while (!tb.connected() && retry) {          // Connect to the ThingsBoard
