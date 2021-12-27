@@ -47,17 +47,15 @@ byte currentMsgId[10],prevMsgId[10];
 SSD1306  display(0x3c, 21, 22);
 
 //- Things.egat ----------------------------------------
-/*
 RPC_Response processSet(const RPC_Data &data) {
-  Serial.println("Received the set delay RPC method");
-  Serial.print("Set new delay: "); Serial.println(String(data));
-
-  return RPC_Response(NULL, data);
+  int d = data;
+  Serial.print("Received the set  RPC method:"); Serial.println(d);
+  return RPC_Response(NULL, 1);
 }
 
 RPC_Response processGet(const RPC_Data &data) {
-  Serial.println("Received the get value method");
-  
+  int d = data;
+  Serial.println("Received the get value method:"); Serial.println(d);
   return RPC_Response(NULL, 1);
 }
 
@@ -66,7 +64,6 @@ RPC_Callback callbacks[] = {
   { "getValue", processGet },
 };
 //---------------------------------------------
-*/
 
 void reconnect() {
   showdisplay(0, 10, "Connecting to AP..", false);
@@ -86,7 +83,7 @@ void reconnect() {
     if ( tb.connect(THINGSBOARD_SERVER, TOKEN) ) {
       Serial.println( "[DONE]" );
       showdisplay(0, 40, "-> Tb Connected!", false);
-      /*
+      
       if (!subscribed) {              // Subscribe for RPC, if needed
         Serial.println("Subscribing for RPC...");
         if (!tb.RPC_Subscribe(callbacks, COUNT_OF(callbacks))) {
@@ -96,8 +93,8 @@ void reconnect() {
         Serial.println("Subscribe done");
         subscribed = true;
       }
-      */
-    } else {
+    } 
+    else {
       Serial.print( "[FAILED]" );
       Serial.println( " : retrying in 5 seconds]" );
       delay( 5000 );
