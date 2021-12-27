@@ -48,15 +48,19 @@ SSD1306  display(0x3c, 21, 22);
 
 //- Things.egat ----------------------------------------
 RPC_Response processSet(const RPC_Data &data) {
-  int d = data;
-  Serial.print("Received the set  RPC method:"); Serial.println(d);
+  int  cmd = data;
+  Serial.print("Received the set RPC method => "+ String(cmd)); 
+  
+  char buff[5];
+  sprintf(buff,"%02x%02x",0x01,cmd);
+  sendMessage(0x0a, String(buff));
+
   return RPC_Response(NULL, 1);
 }
 
 RPC_Response processGet(const RPC_Data &data) {
-  int d = data;
-  Serial.println("Received the get value method:"); Serial.println(d);
-  return RPC_Response(NULL, 1);
+  Serial.println("Received the get value method:");
+  return RPC_Response(NULL, 0);
 }
 
 RPC_Callback callbacks[] = {
@@ -233,30 +237,3 @@ void onReceive(int packetSize) {
   display.display();
     
 }
-
-
-
-/*
-
-  //- Thing Board ----------------------------
-  while (!tb.connected() && retry) {          // Connect to the ThingsBoard
-    Serial.print("Connecting to: ");Serial.print(THINGSBOARD_SERVER);Serial.print(" with token ");Serial.println(TOKEN);
-    if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
-      Serial.println("Failed to connect");
-      retry--;
-    }
-  } 
-  
-  if (!subscribed) {              // Subscribe for RPC, if needed
-    Serial.println("Subscribing for RPC...");
-    if (!tb.RPC_Subscribe(callbacks, COUNT_OF(callbacks))) {
-      Serial.println("Failed to subscribe for RPC");
-      return;
-    }
-    Serial.println("Subscribe done");
-    subscribed = true;
-  }
-  if (tb.connected()) {
-    tb.loop();
-  }
-  */
