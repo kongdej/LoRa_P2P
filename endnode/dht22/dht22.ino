@@ -1,9 +1,10 @@
 #include <SPI.h>
 #include <LoRa.h>
+#include <CRC32.h>
 
 #include "DHT.h"
 #define DHTPIN  13
-#define DHTTYPE DHT22
+#define DHTTYPE DHT21
 DHT dht(DHTPIN, DHTTYPE);
 
 #define SS      18
@@ -41,14 +42,17 @@ void setup() {
   dht.begin();
   Serial.println("DHT initiated");
 }
-
+ 
 void loop() {
-  char buff[9];
+  char buff[17];
   if (millis() - lastSend > interval) {
+    CRC32 crc;  
     lastSend = millis();            // timestamp the message
     float t = dht.readTemperature();
     float h = dht.readHumidity();
-  
+    //t=25.5;
+    //h=66.6;
+    
     if (isnan(h) || isnan(t)) {
       Serial.println(F("Failed to read from DHT sensor!"));
     }
@@ -56,8 +60,16 @@ void loop() {
       Serial.println("temp="+String(t)+" hum="+String(h));   
       int temperature = t*10;
       int humidity = h*10;
+      
       Serial.println("temp="+String(temperature)+" hum="+String(humidity));   
       sprintf(buff,"%04x%04x",temperature,humidity);
+      for (size_t i = 0; i < 8; i++) {
+        crc.update(buff[i]);
+      }
+      uint32_t checksum    = crc.finalize();  
+      Serial.printf("Check sum = %0x ",checksum);
+      sprintf(buff,"%s%08x",buff,checksum);
+      
       sendMessage(buff);
       Serial.println("Sending "+String(buff));
     }

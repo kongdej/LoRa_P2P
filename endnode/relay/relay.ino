@@ -76,6 +76,7 @@ void loop() {
   Serial.println("Message: " + incoming);
   Serial.println("RSSI: " + String(LoRa.packetRssi()));
   Serial.println();
+  
   int rno = (int) strtol( &incoming.substring(0,2)[0], NULL, 16);
   int cmd = (int) strtol( &incoming.substring(2,4)[0], NULL, 16);
   if (sender == 0) {

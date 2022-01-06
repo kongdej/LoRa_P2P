@@ -70,7 +70,7 @@ void loop() {
     Serial.print(flora->fert());
     Serial.println("us/cm");
 
-    char buff[17];
+    char buff[17];     
     sprintf(buff,"%04x%04x%04x%04x",(int)(flora->temp()*10), flora->moist(), flora->light(), flora->fert());
     sendMessage(buff);
     Serial.println("Sending "+String(buff));

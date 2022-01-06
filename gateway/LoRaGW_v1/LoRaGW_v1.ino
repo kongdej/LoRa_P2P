@@ -1,25 +1,22 @@
 #include <SPI.h>
 #include <LoRa.h>
+#include "SSD1306.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <ThingsBoard.h>
-#include "SSD1306.h"
+
+// Wifi -------------------------------------
+const char* ssid       = "EGAT-IoT";
+const char* password   = "";
+//-------------------------------------------
 
 // Thing.egat.co.th -------------------------
 #define THINGSBOARD_SERVER  "mqtt.egat.co.th"
-#define TOKEN "p21tc9nc6xvgmxzx6iei"
+#define TOKEN "xFIDsmf35NN29CGZtJJ7"
 
-WiFiClient wifiClient;
-//ThingsBoard tb(wifiClient);
-ThingsBoardSized<128> tb(wifiClient);
+WiFiClient espClient;
+ThingsBoard tb(espClient);
 //---------------------------------------------
-
-// Wifi -------------------------------------
-#define WIFI_AP "ABZ"
-#define WIFI_PASSWORD "gearman1"
-
-int status = WL_IDLE_STATUS;
-//-------------------------------------------
 
 // LoRa -------------------------------------
 #define SS      18
@@ -31,82 +28,12 @@ int status = WL_IDLE_STATUS;
 #define SW      0xab   // SyncWord: ranges from 0-0xFF, default 0x34
 //-------------------------------------------
 
-byte gatewayId = 0x02;        // gateway id
+byte gatewayId = 0x03;        // gateway id
 byte localAddress = 0x00;     // address of this device
 long lastSendTime = 0;        // last send time
 int interval = DCT;           // interval between sends
-String outgoing;              // outgoing message
-byte msgCount = 0;            // count of outgoing messages
-
-
-bool subscribed = false;
-byte currentMsgId[10],prevMsgId[10];
-
-// Helper macro to calculate array size, thingsboard
-#define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
-
+uint8_t retry;
 SSD1306  display(0x3c, 21, 22);
-
-//- Things.egat ----------------------------------------
-RPC_Response processSet(const RPC_Data &data) {
-  int  cmd = data;
-  Serial.println("Received the set RPC method => "+ String(cmd)); 
-  
-  char buff[5];
-  sprintf(buff,"%02x%02x",0x01,cmd);
-  sendMessage(0x0a, String(buff));
-
-  return RPC_Response(NULL, 1);
-}
-
-RPC_Response processGet(const RPC_Data &data) {
-  Serial.println("Received the get value method:");
-  return RPC_Response(NULL, 0);
-}
-
-RPC_Callback callbacks[] = {
-  { "setValue", processSet },
-  { "getValue", processGet },
-};
-//---------------------------------------------
-
-void reconnect() {
-  showdisplay(0, 10, "Connecting to AP..", false);
-  while (!tb.connected()) {
-    status = WiFi.status();
-    if ( status != WL_CONNECTED) {
-      WiFi.begin(WIFI_AP, WIFI_PASSWORD);
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-      }
-      Serial.println("Connected to AP");
-      showdisplay(0, 20, "-> Wifi Connected!", false);
-    }
-    Serial.print("Connecting to ThingsBoard node ...");
-    showdisplay(0, 30, "Connecting to Tb..", false);
-    if ( tb.connect(THINGSBOARD_SERVER, TOKEN) ) {
-      Serial.println( "[DONE]" );
-      showdisplay(0, 40, "-> Tb Connected!", false);
-      
-      if (!subscribed) {              // Subscribe for RPC, if needed
-        Serial.println("Subscribing for RPC...");
-        if (!tb.RPC_Subscribe(callbacks, COUNT_OF(callbacks))) {
-          Serial.println("Failed to subscribe for RPC");
-          return;
-        }
-        Serial.println("Subscribe done");
-        subscribed = true;
-      }
-    } 
-    else {
-      Serial.print( "[FAILED]" );
-      Serial.println( " : retrying in 5 seconds]" );
-      delay( 5000 );
-    }
-  }
-  showdisplay(0, 53, "Waiting a packet..", false);
-}
 
 void showdisplay(int col, int row, String text, bool clr) {
   if (clr) display.clear();
@@ -146,37 +73,46 @@ void setup() {
   Serial.println("LoRa init succeeded.");
   showdisplay(0, 0, "LoRa Initial OK!", true);
   delay(1000);
+  
+  //connect to WiFi ---------------------------
+   Serial.printf("Connecting to %s ", ssid);
+   WiFi.begin(ssid, password);
+   retry = 20;
+   while (WiFi.status() != WL_CONNECTED && retry) {
+     delay(500);
+     Serial.print(".");
+     retry--;
+   }
+   if(WiFi.status() == WL_CONNECTED) {
+    Serial.println(" CONNECTED");
+    display.drawString(0, 15, "Wifi Connected!");
+   }
+   else {
+    Serial.println(" Not CONNECTED");
+    display.drawString(0, 15, "Wifi not connected!"); 
+   }
+   display.display();
+   delay(1000);     
 }
 
 //**** LOOP **********************************
 void loop() {  
-  if ( !tb.connected() ) {
-    reconnect();
-  }
-  tb.loop();
-  
-  if (WiFi.status() != WL_CONNECTED) {
-    reconnect();
-    return;
-  }
-
   //- LoRa Received Packets -----------
   onReceive(LoRa.parsePacket());
-}
 
-void sendMessage(byte destination, String outgoing) {  // destination 0xFF to all node
-  while (LoRa.beginPacket() == 0) {
-    Serial.print("waiting for radio ... ");
-    delay(100);
+  if (!tb.connected() && WiFi.status() == WL_CONNECTED) {
+    // Connect to the ThingsBoard
+    Serial.print("Connecting to: ");
+    Serial.print(THINGSBOARD_SERVER);
+    Serial.print(" with token ");
+    Serial.println(TOKEN);
+    if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
+      Serial.println("Failed to connect");
+      return;
+    }
   }
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(destination);              // add destination address
-  LoRa.write(localAddress);             // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing);                 // add payload
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
+  
+  tb.loop();
 }
 
 void onReceive(int packetSize) {
@@ -227,17 +163,40 @@ void onReceive(int packetSize) {
   payload.toCharArray(buf, 13+incomingLength);
   Serial.println("payload -> " + String(buf));
   Serial.println();
-  
-  tb.sendTelemetryString("nakee", buf);
-  
+    
   display.clear();
-  display.drawString(0, 14, "NID : "+ String(sender) + ", RSSI: "+ incomingRSSI);
-  display.drawString(0, 26, "Msg : "+ String(incomingMsgId));
-  display.drawString(0, 38, "Len : "+ String(incomingLength));
-  if (incoming.length() > 15)  
-    display.drawString(0, 50, "Data: "+ incoming.substring(0,15) + "..");
-  else
-    display.drawString(0, 50, "Data: "+ incoming);
+  display.drawString(0, 0, "NID : "+ String(sender) + ", RSSI: "+ incomingRSSI+ " -> "+ String(incomingMsgId));
+  int wsi,wsii,wdi,wdii,ti,hi,sm,st,sec,v,i,r;
+  wsi  = (int) strtol( &incoming.substring(0,4)[0], NULL, 16);
+  wsii = (int) strtol( &incoming.substring(4,8)[0], NULL, 16);
+  wdii = (int) strtol( &incoming.substring(8,12)[0], NULL, 16);
+  wdi  = (int) strtol( &incoming.substring(12,16)[0], NULL, 16);
+  ti   = (int) strtol( &incoming.substring(16,20)[0], NULL, 16);
+  hi   = (int) strtol( &incoming.substring(20,24)[0], NULL, 16);
+  sm   = (int) strtol( &incoming.substring(24,28)[0], NULL, 16);
+  st   = (int) strtol( &incoming.substring(28,32)[0], NULL, 16);
+  sec  = (int) strtol( &incoming.substring(32,36)[0], NULL, 16);
+  v    = (int) strtol( &incoming.substring(36,40)[0], NULL, 16);
+  i    = (int) strtol( &incoming.substring(40,44)[0], NULL, 16);
+  r    = (int) strtol( &incoming.substring(44,45)[0], NULL, 16);
+  
+  tb.sendTelemetryFloat("WS301", wsi/10.);
+  tb.sendTelemetryFloat("WD301", wdi);
+  tb.sendTelemetryFloat("T301", ti/10.);
+  tb.sendTelemetryFloat("H301", hi/10.);
+  tb.sendTelemetryFloat("SM301", sm/10.);
+  tb.sendTelemetryFloat("ST301", st/10.);
+  tb.sendTelemetryFloat("EC301", sec);
+  tb.sendTelemetryFloat("V301", v/10.);
+  tb.sendTelemetryFloat("I301", i/10.);
+  tb.sendTelemetryFloat("R301", r);
+  
+  display.drawString(0, 10, "wind: "+ String(wsi/10.) + ", "+ String(wdi));  
+  display.drawString(0, 20, "T: "+ String(ti/10.) + ", H: "+ String(hi/10.));  
+  display.drawString(0, 30, "M: "+ String(sm/10.) + ", T: "+ String(st/10.) + ", EC: "+ String(sec) );  
+  display.drawString(0, 40, "V: "+ String(v/10.) + ", I: "+ String(i/10.) + ", R: "+ String(r) );  
   display.display();
+  Serial.println("wind : "+ String(wsi/10.) + ", "+ String(wdi));
+  Serial.println("T: "+ String(ti/10.) + ", H: "+ String(hi/10.));
     
 }

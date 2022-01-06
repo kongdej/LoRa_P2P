@@ -10,7 +10,7 @@ request = modbus.read_holding_registers(address = 0x0000,count = 0x02, unit=0x02
 print(request.registers)
 
 # change address
-#res = modbus.write_register(address = 0x07D1 , value = 0x02, unit=0x01)
+@res = modbus.write_register(address = 0x07D1 , value = 0x02, unit=0x01)
 
 
 

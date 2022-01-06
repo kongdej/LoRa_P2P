@@ -43,6 +43,7 @@ client.on('message', function (topic, message) {
         let payload = obj.nakee
 
         // header
+
         let gwId    = parseInt(payload.substring(2,4),16)
         let sender  = parseInt(payload.substring(4,6),16)
         let msgId   = parseInt(payload.substring(6,8),16)
@@ -57,11 +58,44 @@ client.on('message', function (topic, message) {
           let data    = parseInt(payload.substring(12,12 + msgLen),16)
           if (!isNaN(data)) {
             console.log("data =",data)
+
           }
+        }
+
+        else if( gwId == 2 && sender === 5 ) {
+          let ws = parseInt(payload.substring(12,16),16)
+          let wsi = parseInt(payload.substring(16,20),16)
+          let wdi = parseInt(payload.substring(20,24),16)
+          let wd = parseInt(payload.substring(24,28),16)
+          let t = parseInt(payload.substring(28,32),16)
+          let h = parseInt(payload.substring(32,36),16)
+          let mos = parseInt(payload.substring(36,40),16)
+          let ts = parseInt(payload.substring(40,44),16)
+          let ec = parseInt(payload.substring(44,48),16)
+          let v = parseInt(payload.substring(48,52),16)
+          let i = parseInt(payload.substring(52,56),16)
+          let r = parseInt(payload.substring(56,57),16)
+
+          console.log("ws=",ws);
+          console.log("wsi=",wsi);
+          console.log("wd=",wd);
+          console.log("wdi=",wdi);
+          console.log("t=",t);
+          console.log("h=",h);
+
+          console.log("mos=",mos);
+          console.log("ts=",ts);
+          console.log("ec=",ec);
+          console.log("v=",v);
+          console.log("i=",i);
+          console.log("r=",r);
+
+
         }
 
         // data payload node #2 -----------------------
         else if( gwId == 2 && sender === 2 ) {
+          // aa 02 02 2f 08 2c 012f 00e9
             let t = parseInt(payload.substring(12,16),16)
             let h = parseInt(payload.substring(16,20),16)
             if (!isNaN(t) && !isNaN(h)) {
