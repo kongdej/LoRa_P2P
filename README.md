@@ -1,2 +1,2 @@
 # LoRa_P2P
-![Alt text](./schematic/path/to/LoraThings.jpeg?raw=true "Configuration")
+![Alt text](https://github.com/kongdej/LoRa_P2P/blob/main/schematic/LoraThings.jpeg "Configuration")
