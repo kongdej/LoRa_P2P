@@ -5,7 +5,7 @@
 
 #define BLYNK_TEMPLATE_ID "TMPLL5sfJiD7"
 #define BLYNK_DEVICE_NAME "GATEWAY"
-#define BLYNK_FIRMWARE_VERSION        "0.9.4"
+#define BLYNK_FIRMWARE_VERSION        "0.9.5"
 #define BLYNK_PRINT Serial
 #define APP_DEBUG
 
@@ -17,7 +17,7 @@ byte localAddress = 0x00;     // address of this device
 
 // Thing.egat.co.th -------------------------
 #define THINGSBOARD_SERVER  "mqtt.egat.co.th"
-#define TOKEN "xFIDsmf35NN29CGZtJJ7"
+#define TOKEN "p21tc9nc6xvgmxzx6iei"
 
 WiFiClient espClient;
 ThingsBoard tb(espClient);
@@ -77,38 +77,29 @@ void setup() {
   BlynkEdgent.begin();
   display.drawString(10, 20, "Blynk connected!");
   display.display();
+  delay(1000);
 }
 
-uint8_t retry; 
 
 void loop() { 
-  BlynkEdgent.run();
-  /*
-  //- Thing Board ----------------------------
-  if(!tb.connected()) {
-    retry = 10;
-    while (!tb.connected() && retry) {          // Connect to the ThingsBoard
-      Serial.print("Connecting to: ");Serial.print(THINGSBOARD_SERVER);Serial.print(" with token ");Serial.println(TOKEN);
+  //- Things board ------------------
+  if(!tb.connected() && WiFi.status() == WL_CONNECTED ) {
+      Serial.printf("Connecting to: %s ",THINGSBOARD_SERVER);
       if (!tb.connect(THINGSBOARD_SERVER, TOKEN)) {
         Serial.println("Failed to connect");
-        retry--;
+        display.drawString(0, 50, "** Things not connected!");
+        display.display();
       }
-      delay(500);
-    }
-    if (retry > 0) {
-      display.drawString(10, 30, "Things connected!");
-      Serial.println("TB connected.");
-    }
-    else {
-      display.drawString(50, 30, "** Things not connected!");
-      Serial.println("TB not connected.");
-    }
-    display.display();
-  }
-  */
-
+   }  
+  
   //- LoRa Received Packets -----------
   onReceive(LoRa.parsePacket()); 
+
+  // Thingsboard -----
+  tb.loop();
+
+  // Blynk -----------
+  BlynkEdgent.run();
 }
 
 void onReceive(int packetSize) {
@@ -177,11 +168,12 @@ void onReceive(int packetSize) {
   display.display();
   switch (sender) {
      case 0x02: 
-          float t  = (int) strtol( &incoming.substring(0,4)[0], NULL, 16)/10.;
-          float h  = (int) strtol( &incoming.substring(4,8)[0], NULL, 16)/10.;
-          Serial.printf("t=%3.1f, h=%3.0f\n",t,h);
-          Blynk.virtualWrite(V2, t);
+          uint8_t id  = (int) strtol( &incoming.substring(0,2)[0], NULL, 16);
+          float t     = (int) strtol( &incoming.substring(2,6)[0], NULL, 16)/10.;
+          float h     = (int) strtol( &incoming.substring(6,10)[0], NULL, 16)/10.;
+          Serial.printf("%d: t=%3.1f, h=%3.0f\n",id, t,h);
           Blynk.virtualWrite(V1, h);
+          Blynk.virtualWrite(V2, t);
           Blynk.virtualWrite(V103, LoRa.packetRssi());
           tb.sendTelemetryFloat("T300", t);
           tb.sendTelemetryFloat("H300", h);
