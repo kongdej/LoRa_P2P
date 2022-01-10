@@ -5,7 +5,7 @@
 
 #define BLYNK_TEMPLATE_ID "TMPLL5sfJiD7"
 #define BLYNK_DEVICE_NAME "GATEWAY"
-#define BLYNK_FIRMWARE_VERSION        "0.9.5"
+#define BLYNK_FIRMWARE_VERSION        "0.9.6"
 #define BLYNK_PRINT Serial
 #define APP_DEBUG
 
@@ -167,16 +167,18 @@ void onReceive(int packetSize) {
     display.drawString(0, 36, "Data: "+ incoming);
   display.display();
   switch (sender) {
-     case 0x02: 
-          uint8_t id  = (int) strtol( &incoming.substring(0,2)[0], NULL, 16);
-          float t     = (int) strtol( &incoming.substring(2,6)[0], NULL, 16)/10.;
-          float h     = (int) strtol( &incoming.substring(6,10)[0], NULL, 16)/10.;
-          Serial.printf("%d: t=%3.1f, h=%3.0f\n",id, t,h);
-          Blynk.virtualWrite(V1, h);
-          Blynk.virtualWrite(V2, t);
+     case 0x02:  // PM5003
+          uint16_t pm1  = (int) strtol( &incoming.substring(0,4)[0], NULL, 16 );
+          uint16_t pm25 = (int) strtol( &incoming.substring(4,8)[0], NULL, 16 );
+          uint16_t pm10 = (int) strtol( &incoming.substring(8,12)[0], NULL, 16 );
+          Serial.printf("pm1= %d, pm2.5=%d, pm10=%d\n",pm1, pm25, pm10);
+          Blynk.virtualWrite(V1, pm1);
+          Blynk.virtualWrite(V2, pm25);
+          Blynk.virtualWrite(V3, pm10);
           Blynk.virtualWrite(V103, LoRa.packetRssi());
-          tb.sendTelemetryFloat("T300", t);
-          tb.sendTelemetryFloat("H300", h);
+          tb.sendTelemetryFloat("PM201", pm1);
+          tb.sendTelemetryFloat("PM202", pm25);
+          tb.sendTelemetryFloat("PM203", pm10);
           break;          
   }  
 }

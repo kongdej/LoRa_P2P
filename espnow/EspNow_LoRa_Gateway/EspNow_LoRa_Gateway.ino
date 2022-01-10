@@ -22,13 +22,13 @@ String success;
 // Node1 --------------------------------------------------------
 uint8_t node1macAddress[] = {0x84, 0xCC, 0xA8, 0x7E, 0xBE, 0xA4};  // esp32 - 84:CC:A8:7E:BE:A4
 String  node1macStr = "84:cc:a8:7e:be:a4";
-
 typedef struct struct_message {
-    uint8_t id;
-    float   temp;
-    float   hum;
+    uint16_t pm1;
+    uint16_t pm25;
+    uint16_t pm10;
 } struct_message;
-struct_message node1Payload;
+
+struct_message pmPayload;
 //-----------------------------------------------------------------
 
 // Callback when data is received
@@ -46,20 +46,18 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     Serial.print("Bytes received: "); Serial.println(len);
     
     //- get payload-------------------------
-    memcpy(&node1Payload, incomingData, sizeof(node1Payload));  
-    uint8_t id = node1Payload.id;
-    float incomingTemp = node1Payload.temp;
-    float incomingHum  = node1Payload.hum;
-    Serial.printf("id=%d, temp=%f, hum=%f\n", id, incomingTemp, incomingHum);   
+    memcpy(&pmPayload, incomingData, sizeof(pmPayload));  
+    uint16_t pm1  = pmPayload.pm1;
+    uint16_t pm25 = pmPayload.pm25;
+    uint16_t pm10 = pmPayload.pm10;
+    Serial.printf("pm1=%d, pm2.5=%d, pm10=%d\n", pm1, pm25, pm10);   
   
-    int temperature = incomingTemp*10;
-    int humidity = incomingHum*10;
-
-    //-- payload = id/temp/hum/crc----
-    sprintf(buff,"%02x%04x%04x", node1Payload.id,temperature, humidity);
+    //-- payload = pm1/pm2.5/pm10/crc ----
+    sprintf(buff,"%04x%04x%04x", pm1, pm25, pm10);
+    
     
     // calculate CRC32
-    for (size_t i = 0; i < 10; i++) { //(*) payload length = 10
+    for (size_t i = 0; i < 12; i++) { //(*) payload length = 12
       crc.update(buff[i]);
     }
     sendMessage(buff, crc.finalize()); 

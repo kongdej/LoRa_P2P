@@ -8,8 +8,9 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // REPLACE WITH THE MAC Address of your receiver 
+// mac -> 84:CC:A8:7E:BE:A4
+
 uint8_t broadcastAddress[] = {0x08, 0x3A, 0xF2, 0x66, 0x9C, 0x34};  // ttgo  - 08:3A:F2:66:9C:34
-//uint8_t broadcastAddress[] = {0x84, 0xCC, 0xA8, 0x7E, 0xBE, 0xA4};  // esp32 - 84:CC:A8:7E:BE:A4
 
 typedef struct struct_message {
     uint8_t id;

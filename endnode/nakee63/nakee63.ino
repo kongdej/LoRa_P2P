@@ -3,6 +3,11 @@
 #include "ModbusMaster.h"
 #include <Wire.h>
 
+#include "PMS.h"
+
+PMS pms(Serial);
+PMS::DATA data;
+
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  5        /* Time ESP32 will go to sleep (in seconds) */
 RTC_DATA_ATTR  byte msgCount = 0;
@@ -106,7 +111,7 @@ void sendMessages() {
   delay(200);
   int rain = digitalRead(RAIN_PIN);
   Serial.println("Rain = " + String(rain));
-
+  
   Serial.println();
   
   char buff[50];
@@ -132,8 +137,22 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
   
+  Serial1.begin(9600, SERIAL_8N1, 12, 35);
+  
   pinMode(RAIN_PIN, INPUT_PULLUP);
   
+  if (pms.read(data)) {
+    Serial.print("PM 1.0 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_1_0);
+
+    Serial.print("PM 2.5 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_2_5);
+
+    Serial.print("PM 10.0 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_10_0);
+
+    Serial.println();
+  }
   
   // Deep Sleep --------------------------
   Serial.println();
@@ -141,6 +160,7 @@ void setup() {
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) +" Seconds");
 
+/*
   Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   
     // Initialize I2C bus
@@ -173,7 +193,7 @@ void setup() {
   soil.begin(SOIL_ID, Serial2);
   soil.preTransmission(preTransmission);
   soil.postTransmission(postTransmission);
- 
+   
   Serial.println("LoRa Node 1 Starting..");
   SPI.begin(5, 19, 27, 18);
   LoRa.setPins(SS, RST, DI0);
@@ -187,7 +207,7 @@ void setup() {
   Serial.println("LoRa init succeeded.");
 
   sendMessages();
-  
+  */
   Serial.println("Going to sleep now");
   delay(1000);
   Serial.flush(); 
@@ -197,13 +217,6 @@ void setup() {
 }
 
 void loop() {
-  /*
-  if (millis() - lastSendTime > interval) {
-    lastSendTime = millis();            // timestamp the message
-    interval = DCT + random(2000);     // 5-7 seconds
-    sendMessages();
-  }
-  */
 }
 
 /*
