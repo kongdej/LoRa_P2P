@@ -17,10 +17,12 @@ float sp = 60;
 bool mode = 0; // 0 manual
 
 BLYNK_WRITE(V10) {
-  int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
-  Serial.print("value is: ");
-  Serial.println(pinValue);
-  digitalWrite(5, pinValue);
+  if (mode == 0) {
+    int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
+    
+    Serial.print("value is: "); Serial.println(pinValue);
+    digitalWrite(5, pinValue);
+  }
 }
 
 BLYNK_WRITE(V11) {
@@ -70,6 +72,9 @@ void loop() {
   BlynkEdgent.run();
   timer.run();
 }
+
+// https://sgp1.blynk.cloud/external/api/update?token=YYlNjSzbXqW4NQHGViyyO6JZfhzszdif&V3=1
+
 
 
   

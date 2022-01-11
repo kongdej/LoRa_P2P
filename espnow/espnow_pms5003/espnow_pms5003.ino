@@ -51,6 +51,7 @@ void setup() {
     return;
   }
   esp_now_register_send_cb(OnDataSent);
+  
   esp_now_peer_info_t peerInfo;
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;  
@@ -59,6 +60,7 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
+  
    // Deep Sleep --------------------------
   Serial.println();
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
